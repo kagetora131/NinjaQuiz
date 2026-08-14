@@ -1,0 +1,542 @@
+<title>忍者クイズ 九字の教え</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg-void:#0a0d12;
+    --bg-void-2:#141a23;
+    --moon:#c9d3e0;
+    --paper:#ece3cf;
+    --paper-shadow:#d8c99f;
+    --paper-edge:#c9b483;
+    --ink:#221f1a;
+    --ink-soft:#5a5140;
+    --seal-red:#a5321f;
+    --seal-red-dark:#7c2517;
+    --jade:#3d5a3a;
+    --jade-dark:#294028;
+    --gold:#b6924f;
+    --gold-bright:#d9b46a;
+    --wood:#2b2019;
+    --wood-light:#4a3626;
+    font-size:16px;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:var(--bg-void);
+  }
+
+  body{
+    font-family:"Yu Gothic Medium","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:6vh 16px 8vh;
+    position:relative;
+    overflow-x:hidden;
+    background:
+      radial-gradient(ellipse 60% 40% at 82% 8%, rgba(201,211,224,0.16), transparent 60%),
+      radial-gradient(ellipse 120% 80% at 50% 110%, rgba(80,30,20,0.12), transparent 60%),
+      linear-gradient(180deg, var(--bg-void-2) 0%, var(--bg-void) 55%, #060809 100%);
+  }
+
+  .mincho{ font-family:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif; }
+
+  /* ---------- ambient decoration ---------- */
+  .moon{
+    position:fixed; top:-90px; right:-60px; width:260px; height:260px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #eef2f7, #c9d3e0 55%, transparent 72%);
+    box-shadow:0 0 120px 40px rgba(201,211,224,0.10);
+    pointer-events:none; z-index:0;
+  }
+  .shuriken-bg{
+    position:fixed; width:120px; height:120px; opacity:0.07; pointer-events:none; z-index:0;
+    animation:spin 40s linear infinite;
+  }
+  .shuriken-bg.a{ top:12%; left:-40px; }
+  .shuriken-bg.b{ bottom:6%; right:-30px; width:160px; height:160px; animation-duration:55s; animation-direction:reverse; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .petal{
+    position:fixed; top:-5%; width:10px; height:14px; background:linear-gradient(135deg,#caa9a1,#8b5a52);
+    border-radius:70% 0 70% 0; opacity:0.35; pointer-events:none; z-index:0;
+    animation:fall linear infinite;
+  }
+  @keyframes fall{
+    0%{ transform:translateY(0) rotate(0deg); }
+    100%{ transform:translateY(110vh) rotate(320deg); }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .shuriken-bg, .petal{ animation:none !important; }
+  }
+
+  /* ---------- scroll card ---------- */
+  .scroll-wrap{
+    position:relative; z-index:1; width:100%; max-width:660px;
+    filter:drop-shadow(0 25px 45px rgba(0,0,0,0.55));
+  }
+
+  .spindle{
+    position:absolute; top:-14px; bottom:-14px; width:26px; border-radius:13px;
+    background:linear-gradient(180deg,#5a4230,var(--wood) 45%,#1c130d);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .spindle::before, .spindle::after{
+    content:""; position:absolute; left:50%; transform:translateX(-50%); width:34px; height:10px;
+    background:radial-gradient(ellipse at center, #6a503a, var(--wood) 70%);
+    border-radius:50%;
+  }
+  .spindle::before{ top:-6px; }
+  .spindle::after{ bottom:-6px; }
+  .spindle.left{ left:-13px; }
+  .spindle.right{ right:-13px; }
+
+  .scroll-card{
+    position:relative; margin:0 18px;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% 0%, rgba(0,0,0,0.10), transparent 55%),
+      radial-gradient(ellipse 120% 60% at 50% 100%, rgba(0,0,0,0.14), transparent 55%),
+      linear-gradient(180deg, var(--paper) 0%, #e6dabc 100%);
+    border-radius:6px;
+    padding:34px clamp(20px,5vw,52px) 40px;
+    box-shadow:
+      inset 0 0 0 1px rgba(120,95,50,0.25),
+      inset 0 0 60px rgba(120,95,50,0.10);
+  }
+
+  .seal{
+    position:absolute; top:20px; right:clamp(16px,4vw,40px);
+    width:56px; height:56px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--seal-red), var(--seal-red-dark));
+    color:#f2e7d3; display:flex; align-items:center; justify-content:center;
+    font-size:1.5rem; font-weight:700; transform:rotate(-8deg);
+    box-shadow:0 2px 4px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(242,231,211,0.35);
+  }
+
+  h1{
+    margin:0 0 4px; font-size:clamp(1.4rem,4vw,1.9rem); letter-spacing:.06em; color:var(--ink);
+  }
+  .subtitle{
+    margin:0 0 22px; color:var(--ink-soft); font-size:.85rem; letter-spacing:.08em;
+  }
+
+  /* progress row */
+  .progress{
+    display:flex; gap:7px; flex-wrap:wrap; margin-bottom:26px;
+  }
+  .dot{
+    width:22px; height:22px; position:relative; opacity:.9;
+  }
+  .dot svg{ width:100%; height:100%; display:block; }
+  .dot .ring{ fill:none; stroke:var(--paper-edge); stroke-width:6; }
+  .dot.current .ring{ stroke:var(--gold-bright); animation:pulse 1.6s ease-in-out infinite; }
+  .dot.correct .star{ fill:var(--jade); }
+  .dot.correct .ring{ stroke:var(--jade); }
+  .dot.wrong .star{ fill:var(--seal-red); }
+  .dot.wrong .ring{ stroke:var(--seal-red); }
+  .dot .star{ fill:transparent; transition:fill .25s ease; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+  @media (prefers-reduced-motion:reduce){ .dot.current .ring{ animation:none; } }
+
+  /* question */
+  .qcount{ font-size:.8rem; color:var(--ink-soft); letter-spacing:.1em; margin-bottom:6px; }
+  .qcount .hard-tag{
+    color:var(--seal-red-dark); font-weight:700; border:1px solid var(--seal-red-dark);
+    border-radius:3px; padding:1px 6px; margin-left:8px; font-size:.72rem;
+  }
+  .question{ font-size:clamp(1.05rem,3vw,1.28rem); line-height:1.7; margin:0 0 22px; }
+
+  .choices{ display:flex; flex-direction:column; gap:12px; }
+
+  .choice{
+    text-align:left; font:inherit; font-size:.98rem; color:var(--ink);
+    background:linear-gradient(180deg,#f4ecd6,#e8dcbb);
+    border:1px solid var(--paper-edge); border-left:5px solid var(--wood-light);
+    border-radius:2px; padding:13px 16px; cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,0.12);
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .choice:hover:not(:disabled){ transform:translateX(3px); box-shadow:0 3px 8px rgba(0,0,0,0.18); }
+  .choice:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+  .choice:disabled{ cursor:default; }
+  .choice.correct{ background:linear-gradient(180deg,#dfe8dc,#c9d8c5); border-left-color:var(--jade); }
+  .choice.wrong{ background:linear-gradient(180deg,#ecd8d2,#dcbdb3); border-left-color:var(--seal-red); }
+  .choice.dim{ opacity:.55; }
+
+  .feedback{
+    margin-top:20px; padding:16px 18px; border-radius:3px; position:relative;
+    display:flex; align-items:center; gap:14px;
+    animation:stampIn .28s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes stampIn{ from{ transform:scale(1.5) rotate(-6deg); opacity:0; } to{ transform:scale(1) rotate(-3deg); opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .feedback{ animation:none; } }
+  .feedback.correct{ background:rgba(61,90,58,0.10); border:1px solid var(--jade); }
+  .feedback.wrong{ background:rgba(165,50,31,0.10); border:1px solid var(--seal-red); }
+  .stamp-word{
+    font-size:1.5rem; font-weight:700; letter-spacing:.08em; white-space:nowrap;
+    padding:4px 10px; border:3px solid; border-radius:4px; transform:rotate(-3deg);
+  }
+  .feedback.correct .stamp-word{ color:var(--jade); border-color:var(--jade); }
+  .feedback.wrong .stamp-word{ color:var(--seal-red); border-color:var(--seal-red); }
+  .feedback p{ margin:0; font-size:.9rem; line-height:1.6; color:var(--ink-soft); }
+
+  .next-row{ margin-top:24px; display:flex; justify-content:flex-end; }
+  .btn{
+    font:inherit; font-size:.95rem; color:#f2e7d3; background:linear-gradient(180deg,#5a4230,var(--wood));
+    border:none; border-radius:3px; padding:11px 22px; cursor:pointer; letter-spacing:.05em;
+    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+    transition:transform .12s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+
+  /* ---------- results ---------- */
+  .result-rank{
+    text-align:center; margin-bottom:6px;
+  }
+  .rank-seal{
+    width:132px; height:132px; margin:6px auto 14px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    background:radial-gradient(circle at 35% 30%, var(--seal-red), var(--seal-red-dark));
+    color:#f2e7d3; transform:rotate(-4deg);
+    box-shadow:0 3px 10px rgba(0,0,0,0.4), inset 0 0 0 3px rgba(242,231,211,0.3);
+    clip-path:polygon(50% 0%,61% 7%,75% 2%,80% 15%,93% 15%,90% 29%,100% 38%,90% 48%,97% 60%,84% 64%,86% 78%,72% 75%,66% 90%,54% 80%,42% 92%,34% 78%,20% 84%,20% 69%,6% 65%,15% 52%,3% 40%,15% 30%,10% 17%,24% 16%,28% 3%,42% 8%);
+  }
+  .rank-seal .rank-label{ font-size:1.5rem; font-weight:700; line-height:1.2; }
+  .rank-seal .rank-sub{ font-size:.62rem; letter-spacing:.1em; margin-top:2px; }
+
+  .score-line{ text-align:center; font-size:1rem; color:var(--ink-soft); margin-bottom:20px; }
+  .score-line b{ color:var(--ink); font-size:1.3rem; font-variant-numeric:tabular-nums; }
+
+  .history{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:26px; }
+
+  .hard-result{
+    border:2px solid var(--wood-light); border-radius:4px; padding:18px 20px; margin-bottom:26px;
+    background:linear-gradient(180deg,#f4ecd6,#e8dcbb);
+    position:relative;
+  }
+  .hard-result::before{
+    content:"難問"; position:absolute; top:-12px; left:16px; background:var(--seal-red);
+    color:#f2e7d3; font-size:.72rem; letter-spacing:.1em; padding:2px 9px; border-radius:2px;
+  }
+  .hard-result h3{ margin:6px 0 8px; font-size:1.05rem; }
+  .hard-result .hr-stamp{ font-weight:700; }
+  .hard-result.correct .hr-stamp{ color:var(--jade); }
+  .hard-result.wrong .hr-stamp{ color:var(--seal-red); }
+  .hard-result p{ margin:0; font-size:.88rem; color:var(--ink-soft); line-height:1.7; }
+
+  .retry-row{ display:flex; justify-content:center; }
+
+  [hidden]{ display:none !important; }
+
+  @media (max-width:480px){
+    .scroll-card{ padding:28px 18px 34px; }
+    .spindle{ display:none; }
+    .scroll-wrap{ margin:0; }
+  }
+</style>
+
+<div class="moon"></div>
+<svg class="shuriken-bg a" viewBox="0 0 100 100"><path fill="#c9d3e0" d="M50 0 L58 42 L100 50 L58 58 L50 100 L42 58 L0 50 L42 42 Z"/></svg>
+<svg class="shuriken-bg b" viewBox="0 0 100 100"><path fill="#c9d3e0" d="M50 0 L58 42 L100 50 L58 58 L50 100 L42 58 L0 50 L42 42 Z"/></svg>
+
+<div class="scroll-wrap">
+  <div class="spindle left" aria-hidden="true"></div>
+  <div class="spindle right" aria-hidden="true"></div>
+  <div class="scroll-card" id="app">
+    <div class="seal mincho">忍</div>
+    <h1 class="mincho">忍者クイズ　九字の教え</h1>
+    <p class="subtitle">全10問・修行の心得を試せ</p>
+
+    <div class="progress" id="progress"></div>
+
+    <div id="quizView">
+      <p class="qcount" id="qcount"></p>
+      <p class="question mincho" id="questionText"></p>
+      <div class="choices" id="choices"></div>
+      <div id="feedbackArea"></div>
+      <div class="next-row" id="nextRow" hidden>
+        <button class="btn" id="nextBtn"></button>
+      </div>
+    </div>
+
+    <div id="resultView" hidden>
+      <div class="result-rank">
+        <div class="rank-seal">
+          <span class="rank-label mincho" id="rankLabel"></span>
+          <span class="rank-sub" id="rankSub"></span>
+        </div>
+      </div>
+      <p class="score-line">10問中 <b id="scoreNum"></b> 問正解</p>
+      <div class="history" id="history"></div>
+
+      <div class="hard-result" id="hardResult">
+        <h3 class="mincho">最終問「獨鈷印」の結果：<span class="hr-stamp" id="hardStamp"></span></h3>
+        <p id="hardComment"></p>
+      </div>
+
+      <div class="retry-row">
+        <button class="btn" id="retryBtn">もう一度挑戦する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var quiz = [
+    {
+      q: "忍者が九字を切る際に唱える呪文の、正しい言葉の並びはどれか？",
+      choices: [
+        "臨兵闘者皆陣列在前",
+        "臨兵陣者皆闘列在前",
+        "臨兵闘者陣皆列在前",
+        "臨陣闘者皆兵列在前"
+      ],
+      correct: 0,
+      explain: "正しくは「臨・兵・闘・者・皆・陣・列・在・前」の九字。九字を切る際、この順に唱えながら印を結ぶとされる。"
+    },
+    {
+      q: "九字を切るときに手で組む形を、一般に何と呼ぶか？",
+      choices: ["九字印（くじいん）", "忍法陣", "結界符", "走り九字"],
+      correct: 0,
+      explain: "手指で結ぶ形は「九字印」と呼ばれ、九字それぞれに対応する印が伝えられている。"
+    },
+    {
+      q: "「刀印（とういん）」の目的として伝えられているものはどれか？",
+      choices: [
+        "身体に中心軸をつくり、肉体と精神を安定させる",
+        "自分を安心させる",
+        "偉大なチャクラを意味する",
+        "身体を心からリラックスさせる"
+      ],
+      correct: 0,
+      explain: "刀印は、剣を握るように指を組み、身体の中心軸をつくって心身を安定させるための印とされる。"
+    },
+    {
+      q: "「隠形印（おんぎょういん）」が主に用いられるとされる場面はどれか？",
+      choices: [
+        "自分を安心させるために使用する",
+        "外に対して行動的に働きかける時に使用する",
+        "より抽象的な目的へ移行する段階で使う",
+        "身体を強くし、張りのある体に変える"
+      ],
+      correct: 0,
+      explain: "隠形印は姿を隠す印ともいわれるが、修法としては自らの心を落ち着け、安心させるために結ばれるとされる。"
+    },
+    {
+      q: "「日輪印（にちりんいん）」の使いどころとして伝えられているものはどれか？",
+      choices: [
+        "自分の心と向き合う時に使用する",
+        "自分自身を奮い立たせる",
+        "自分の中にある問題に対処する",
+        "偉大なチャクラを意味する"
+      ],
+      correct: 0,
+      explain: "日輪印は太陽を象る印で、自分自身の内面と静かに向き合うために結ばれるとされる。"
+    },
+    {
+      q: "「智拳印（ちけんいん）」は、どのような段階で用いるとされるか？",
+      choices: [
+        "より抽象的な目的へ移行する段階",
+        "身体に中心軸をつくる段階",
+        "身体を心からリラックスさせる段階",
+        "外に対して行動的に働きかける段階"
+      ],
+      correct: 0,
+      explain: "智拳印は九字の中でも深い段階に位置づけられ、具体から抽象的な境地へと意識を移す印とされる。"
+    },
+    {
+      q: "「内縛印」と「外縛印」のうち、自分自身を奮い立たせるとされるのはどちらか？",
+      choices: ["内縛印（ないばくいん）", "外縛印（げばくいん）", "どちらも同じ効果", "どちらでもない"],
+      correct: 0,
+      explain: "内縛印は指を内側で組む印で、自らを奮い立たせる働きがあるとされる。対して外縛印は身体を強く張りのある状態に変えるという。"
+    },
+    {
+      q: "「内獅子印」と「外獅子印」のうち、外に対して行動的に働きかける時に使うのはどちらか？",
+      choices: ["外獅子印（げじしいん）", "内獅子印（ないじしいん）", "大金剛輪印", "獨鈷印"],
+      correct: 0,
+      explain: "内獅子印は自分の内にある問題に対処するための印、外獅子印は外へ向かって行動的に働きかけるための印とされる。"
+    },
+    {
+      q: "「大金剛輪印（だいこんごうりんいん）」が意味するとされるものはどれか？",
+      choices: ["偉大なチャクラ", "偉大な刀", "偉大な結界", "偉大な呼吸"],
+      correct: 0,
+      explain: "大金剛輪印は、その名の通り「偉大なチャクラ」を意味する印と伝えられている。"
+    },
+    {
+      q: "【難問】九字印の中で「身体を心からリラックスさせる」目的を持つとされる、やや珍しい名を持つ印はどれか？",
+      choices: [
+        "獨鈷印（とっこいん）",
+        "隠形印（おんぎょういん）",
+        "内縛印（ないばくいん）",
+        "智拳印（ちけんいん）"
+      ],
+      correct: 0,
+      explain: "獨鈷印は密教法具の独鈷杵に由来する印で、身体を心から緩め、リラックスさせる目的を持つとされる。",
+      hard: true
+    }
+  ];
+
+  var current = 0;
+  var answered = new Array(quiz.length).fill(null); // null | true | false
+
+  var progressEl = document.getElementById('progress');
+  var qcountEl = document.getElementById('qcount');
+  var questionEl = document.getElementById('questionText');
+  var choicesEl = document.getElementById('choices');
+  var feedbackArea = document.getElementById('feedbackArea');
+  var nextRow = document.getElementById('nextRow');
+  var nextBtn = document.getElementById('nextBtn');
+  var quizView = document.getElementById('quizView');
+  var resultView = document.getElementById('resultView');
+
+  var STAR = '<svg viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="42"/><path class="star" d="M50 14 L58 42 L86 50 L58 58 L50 86 L42 58 L14 50 L42 42 Z"/></svg>';
+
+  var currentOrder = []; // maps displayed choice position -> original choice index
+
+  function shuffledIndices(n){
+    var arr = [];
+    for(var i = 0; i < n; i++) arr.push(i);
+    for(var j = arr.length - 1; j > 0; j--){
+      var k = Math.floor(Math.random() * (j + 1));
+      var tmp = arr[j]; arr[j] = arr[k]; arr[k] = tmp;
+    }
+    return arr;
+  }
+
+  function renderProgress(){
+    progressEl.innerHTML = '';
+    quiz.forEach(function(_, i){
+      var d = document.createElement('span');
+      d.className = 'dot';
+      if(i === current) d.className += ' current';
+      if(answered[i] === true) d.className = 'dot correct';
+      if(answered[i] === false) d.className = 'dot wrong';
+      d.innerHTML = STAR;
+      progressEl.appendChild(d);
+    });
+  }
+
+  function renderQuestion(){
+    var item = quiz[current];
+    qcountEl.innerHTML = '第 ' + (current + 1) + ' / ' + quiz.length + ' 問' + (item.hard ? '<span class="hard-tag">難問</span>' : '');
+    questionEl.textContent = item.q;
+    choicesEl.innerHTML = '';
+    feedbackArea.innerHTML = '';
+    nextRow.hidden = true;
+
+    currentOrder = shuffledIndices(item.choices.length);
+    currentOrder.forEach(function(originalIdx, displayIdx){
+      var btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = item.choices[originalIdx];
+      btn.addEventListener('click', function(){ selectChoice(displayIdx); });
+      choicesEl.appendChild(btn);
+    });
+    renderProgress();
+  }
+
+  function selectChoice(displayIdx){
+    var item = quiz[current];
+    var originalIdx = currentOrder[displayIdx];
+    var isCorrect = originalIdx === item.correct;
+    answered[current] = isCorrect;
+
+    var buttons = choicesEl.querySelectorAll('.choice');
+    buttons.forEach(function(btn, i){
+      btn.disabled = true;
+      if(currentOrder[i] === item.correct) btn.classList.add('correct');
+      else if(i === displayIdx) btn.classList.add('wrong');
+      else btn.classList.add('dim');
+    });
+
+    var fb = document.createElement('div');
+    fb.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+    fb.innerHTML =
+      '<span class="stamp-word mincho">' + (isCorrect ? '正解' : '不正解') + '</span>' +
+      '<p>' + item.explain + '</p>';
+    feedbackArea.innerHTML = '';
+    feedbackArea.appendChild(fb);
+
+    nextBtn.textContent = (current === quiz.length - 1) ? '結果を見る' : '次の問へ →';
+    nextRow.hidden = false;
+    renderProgress();
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if(current < quiz.length - 1){
+      current += 1;
+      renderQuestion();
+    } else {
+      showResult();
+    }
+  });
+
+  function rankFor(score, hardOk){
+    if(score === quiz.length && hardOk) return { label:'皆伝', sub:'KAIDEN', text:'九字のすべてを極めた、免許皆伝の腕前。' };
+    if(score >= 8) return { label:'上忍', sub:'JONIN', text:'九字の教えを深く理解している、上忍の実力。' };
+    if(score >= 6) return { label:'中忍', sub:'CHUNIN', text:'基礎は固い。あと一歩で上忍の域へ。' };
+    if(score >= 3) return { label:'下忍', sub:'GENIN', text:'修行の途中。まずは九字の型から積み重ねよ。' };
+    return { label:'見習い', sub:'MINARAI', text:'まだ入門したばかり。もう一度学び直そう。' };
+  }
+
+  function showResult(){
+    quizView.hidden = true;
+    resultView.hidden = false;
+
+    var score = answered.filter(function(a){ return a === true; }).length;
+    var hardOk = answered[quiz.length - 1] === true;
+    var rank = rankFor(score, hardOk);
+
+    document.getElementById('rankLabel').textContent = rank.label;
+    document.getElementById('rankSub').textContent = rank.sub;
+    document.getElementById('scoreNum').textContent = score;
+
+    var historyEl = document.getElementById('history');
+    historyEl.innerHTML = '';
+    answered.forEach(function(a){
+      var d = document.createElement('span');
+      d.className = 'dot ' + (a ? 'correct' : 'wrong');
+      d.innerHTML = STAR;
+      historyEl.appendChild(d);
+    });
+
+    var hardBox = document.getElementById('hardResult');
+    hardBox.className = 'hard-result ' + (hardOk ? 'correct' : 'wrong');
+    document.getElementById('hardStamp').textContent = hardOk ? '正解！' : '不正解…';
+    document.getElementById('hardComment').textContent = hardOk
+      ? '見事、最後の難問「獨鈷印」を正解。九字印の奥義、心から会得せり。'
+      : '惜しくも難問「獨鈷印」は不正解。獨鈷印は身体を心からリラックスさせる印 ── 今一度修行を積み、再挑戦せよ。';
+  }
+
+  document.getElementById('retryBtn').addEventListener('click', function(){
+    current = 0;
+    answered = new Array(quiz.length).fill(null);
+    resultView.hidden = true;
+    quizView.hidden = false;
+    renderQuestion();
+  });
+
+  // ambient petals
+  (function(){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for(var i = 0; i < 10; i++){
+      var p = document.createElement('div');
+      p.className = 'petal';
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.animationDuration = (9 + Math.random() * 10) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      p.style.opacity = 0.15 + Math.random() * 0.25;
+      document.body.appendChild(p);
+    }
+  })();
+
+  renderQuestion();
+})();
+</script>
