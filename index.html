@@ -125,6 +125,25 @@
     margin:0 0 22px; color:var(--ink-soft); font-size:.85rem; letter-spacing:.08em;
   }
 
+  /* difficulty select */
+  .difficulty-list{ display:flex; flex-direction:column; gap:16px; }
+  .diff-card{
+    text-align:left; font:inherit; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#f4ecd6,#e8dcbb);
+    border:1px solid var(--paper-edge); border-left:6px solid var(--wood-light);
+    border-radius:3px; padding:18px 20px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.12);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .diff-card:hover{ transform:translateX(3px); box-shadow:0 4px 10px rgba(0,0,0,0.2); }
+  .diff-card:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+  .diff-card .diff-rank{
+    display:inline-block; font-size:1.15rem; font-weight:700; letter-spacing:.06em;
+    color:var(--seal-red-dark); margin-bottom:6px;
+  }
+  .diff-card .diff-name{ font-size:.78rem; color:var(--ink-soft); letter-spacing:.08em; margin-left:8px; }
+  .diff-card p{ margin:2px 0 0; font-size:.9rem; line-height:1.6; color:var(--ink-soft); }
+
   /* progress row */
   .progress{
     display:flex; gap:7px; flex-wrap:wrap; margin-bottom:26px;
@@ -145,6 +164,10 @@
 
   /* question */
   .qcount{ font-size:.8rem; color:var(--ink-soft); letter-spacing:.1em; margin-bottom:6px; }
+  .qcount .diff-tag{
+    color:var(--jade-dark); font-weight:700; border:1px solid var(--jade-dark);
+    border-radius:3px; padding:1px 6px; margin-right:6px; font-size:.72rem;
+  }
   .qcount .hard-tag{
     color:var(--seal-red-dark); font-weight:700; border:1px solid var(--seal-red-dark);
     border-radius:3px; padding:1px 6px; margin-left:8px; font-size:.72rem;
@@ -194,6 +217,10 @@
   }
   .btn:hover{ transform:translateY(-1px); }
   .btn:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+  .btn.ghost{
+    background:transparent; color:var(--ink-soft); border:1px solid var(--paper-edge);
+    box-shadow:none;
+  }
 
   /* ---------- results ---------- */
   .result-rank{
@@ -230,7 +257,7 @@
   .hard-result.wrong .hr-stamp{ color:var(--seal-red); }
   .hard-result p{ margin:0; font-size:.88rem; color:var(--ink-soft); line-height:1.7; }
 
-  .retry-row{ display:flex; justify-content:center; }
+  .retry-row{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
 
   [hidden]{ display:none !important; }
 
@@ -251,11 +278,24 @@
   <div class="scroll-card" id="app">
     <div class="seal mincho">忍</div>
     <h1 class="mincho">忍者クイズ　九字の教え</h1>
-    <p class="subtitle">全10問・修行の心得を試せ</p>
+    <p class="subtitle" id="subtitle">全10問・難易度を選んで九字の心得を試せ</p>
 
-    <div class="progress" id="progress"></div>
+    <div id="difficultyView">
+      <div class="difficulty-list">
+        <button class="diff-card" id="pickGenin">
+          <span class="diff-rank mincho">下忍</span><span class="diff-name">GENIN・基礎編</span>
+          <p>九字の唱え言葉の順番、九字印という呼び名、九つの印それぞれの基本的な用途を問う入門編。</p>
+        </button>
+        <button class="diff-card" id="pickChunin">
+          <span class="diff-rank mincho">中忍</span><span class="diff-name">CHUNIN・応用編</span>
+          <p>各印がなぜその効果を持つとされるのか、練習で何を養うのかまで踏み込む応用編。</p>
+        </button>
+      </div>
+    </div>
 
-    <div id="quizView">
+    <div class="progress" id="progress" hidden></div>
+
+    <div id="quizView" hidden>
       <p class="qcount" id="qcount"></p>
       <p class="question mincho" id="questionText"></p>
       <div class="choices" id="choices"></div>
@@ -276,12 +316,13 @@
       <div class="history" id="history"></div>
 
       <div class="hard-result" id="hardResult">
-        <h3 class="mincho">最終問「獨鈷印」の結果：<span class="hr-stamp" id="hardStamp"></span></h3>
+        <h3 class="mincho">最終問「<span id="hardTopic"></span>」の結果：<span class="hr-stamp" id="hardStamp"></span></h3>
         <p id="hardComment"></p>
       </div>
 
       <div class="retry-row">
         <button class="btn" id="retryBtn">もう一度挑戦する</button>
+        <button class="btn ghost" id="changeDiffBtn">難易度を選び直す</button>
       </div>
     </div>
   </div>
@@ -289,103 +330,238 @@
 
 <script>
 (function(){
-  var quiz = [
-    {
-      q: "忍者が九字を切る際に唱える呪文の、正しい言葉の並びはどれか？",
-      choices: [
-        "臨兵闘者皆陣列在前",
-        "臨兵陣者皆闘列在前",
-        "臨兵闘者陣皆列在前",
-        "臨陣闘者皆兵列在前"
-      ],
-      correct: 0,
-      explain: "正しくは「臨・兵・闘・者・皆・陣・列・在・前」の九字。九字を切る際、この順に唱えながら印を結ぶとされる。"
+  var quizSets = {
+    genin: {
+      rankName: '下忍', subtitle: '全10問・基礎編 ── 九字の唱え言葉と九つの印の基本を問う',
+      hardTopic: '獨鈷印',
+      hardComment: {
+        ok: '見事、最後の難問「獨鈷印」を正解。九字印の奥義、心から会得せり。',
+        ng: '惜しくも難問「獨鈷印」は不正解。獨鈷印は身体を心からリラックスさせる印 ── 今一度修行を積み、再挑戦せよ。'
+      },
+      questions: [
+        {
+          q: "忍者が九字を切る際に唱える呪文の、正しい言葉の並びはどれか？",
+          choices: [
+            "臨兵闘者皆陣列在前",
+            "臨兵陣者皆闘列在前",
+            "臨兵闘者陣皆列在前",
+            "臨陣闘者皆兵列在前"
+          ],
+          correct: 0,
+          explain: "正しくは「臨・兵・闘・者・皆・陣・列・在・前」の九字。九字を切る際、この順に唱えながら印を結ぶとされる。"
+        },
+        {
+          q: "九字を切るときに手で組む形を、一般に何と呼ぶか？",
+          choices: ["九字印（くじいん）", "忍法陣", "結界符", "走り九字"],
+          correct: 0,
+          explain: "手指で結ぶ形は「九字印」と呼ばれ、九字それぞれに対応する印が伝えられている。"
+        },
+        {
+          q: "「刀印（とういん）」の目的として伝えられているものはどれか？",
+          choices: [
+            "身体に中心軸をつくり、肉体と精神を安定させる",
+            "自分を安心させる",
+            "偉大なチャクラを意味する",
+            "身体を心からリラックスさせる"
+          ],
+          correct: 0,
+          explain: "刀印は、剣を握るように指を組み、身体の中心軸をつくって心身を安定させるための印とされる。"
+        },
+        {
+          q: "「隠形印（おんぎょういん）」が主に用いられるとされる場面はどれか？",
+          choices: [
+            "自分を安心させるために使用する",
+            "外に対して行動的に働きかける時に使用する",
+            "より抽象的な目的へ移行する段階で使う",
+            "身体を強くし、張りのある体に変える"
+          ],
+          correct: 0,
+          explain: "隠形印は姿を隠す印ともいわれるが、修法としては自らの心を落ち着け、安心させるために結ばれるとされる。"
+        },
+        {
+          q: "「日輪印（にちりんいん）」の使いどころとして伝えられているものはどれか？",
+          choices: [
+            "自分の心と向き合う時に使用する",
+            "自分自身を奮い立たせる",
+            "自分の中にある問題に対処する",
+            "偉大なチャクラを意味する"
+          ],
+          correct: 0,
+          explain: "日輪印は太陽を象る印で、自分自身の内面と静かに向き合うために結ばれるとされる。"
+        },
+        {
+          q: "「智拳印（ちけんいん）」は、どのような段階で用いるとされるか？",
+          choices: [
+            "より抽象的な目的へ移行する段階",
+            "身体に中心軸をつくる段階",
+            "身体を心からリラックスさせる段階",
+            "外に対して行動的に働きかける段階"
+          ],
+          correct: 0,
+          explain: "智拳印は九字の中でも深い段階に位置づけられ、具体から抽象的な境地へと意識を移す印とされる。"
+        },
+        {
+          q: "「内縛印」と「外縛印」のうち、自分自身を奮い立たせるとされるのはどちらか？",
+          choices: ["内縛印（ないばくいん）", "外縛印（げばくいん）", "どちらも同じ効果", "どちらでもない"],
+          correct: 0,
+          explain: "内縛印は指を内側で組む印で、自らを奮い立たせる働きがあるとされる。対して外縛印は身体を強く張りのある状態に変えるという。"
+        },
+        {
+          q: "「内獅子印」と「外獅子印」のうち、外に対して行動的に働きかける時に使うのはどちらか？",
+          choices: ["外獅子印（げじしいん）", "内獅子印（ないじしいん）", "大金剛輪印", "獨鈷印"],
+          correct: 0,
+          explain: "内獅子印は自分の内にある問題に対処するための印、外獅子印は外へ向かって行動的に働きかけるための印とされる。"
+        },
+        {
+          q: "「大金剛輪印（だいこんごうりんいん）」が意味するとされるものはどれか？",
+          choices: ["偉大なチャクラ", "偉大な刀", "偉大な結界", "偉大な呼吸"],
+          correct: 0,
+          explain: "大金剛輪印は、その名の通り「偉大なチャクラ」を意味する印と伝えられている。"
+        },
+        {
+          q: "【難問】九字印の中で「身体を心からリラックスさせる」目的を持つとされる、やや珍しい名を持つ印はどれか？",
+          choices: [
+            "獨鈷印（とっこいん）",
+            "隠形印（おんぎょういん）",
+            "内縛印（ないばくいん）",
+            "智拳印（ちけんいん）"
+          ],
+          correct: 0,
+          explain: "獨鈷印は密教法具の独鈷杵に由来する印で、身体を心から緩め、リラックスさせる目的を持つとされる。",
+          hard: true
+        }
+      ]
     },
-    {
-      q: "九字を切るときに手で組む形を、一般に何と呼ぶか？",
-      choices: ["九字印（くじいん）", "忍法陣", "結界符", "走り九字"],
-      correct: 0,
-      explain: "手指で結ぶ形は「九字印」と呼ばれ、九字それぞれに対応する印が伝えられている。"
-    },
-    {
-      q: "「刀印（とういん）」の目的として伝えられているものはどれか？",
-      choices: [
-        "身体に中心軸をつくり、肉体と精神を安定させる",
-        "自分を安心させる",
-        "偉大なチャクラを意味する",
-        "身体を心からリラックスさせる"
-      ],
-      correct: 0,
-      explain: "刀印は、剣を握るように指を組み、身体の中心軸をつくって心身を安定させるための印とされる。"
-    },
-    {
-      q: "「隠形印（おんぎょういん）」が主に用いられるとされる場面はどれか？",
-      choices: [
-        "自分を安心させるために使用する",
-        "外に対して行動的に働きかける時に使用する",
-        "より抽象的な目的へ移行する段階で使う",
-        "身体を強くし、張りのある体に変える"
-      ],
-      correct: 0,
-      explain: "隠形印は姿を隠す印ともいわれるが、修法としては自らの心を落ち着け、安心させるために結ばれるとされる。"
-    },
-    {
-      q: "「日輪印（にちりんいん）」の使いどころとして伝えられているものはどれか？",
-      choices: [
-        "自分の心と向き合う時に使用する",
-        "自分自身を奮い立たせる",
-        "自分の中にある問題に対処する",
-        "偉大なチャクラを意味する"
-      ],
-      correct: 0,
-      explain: "日輪印は太陽を象る印で、自分自身の内面と静かに向き合うために結ばれるとされる。"
-    },
-    {
-      q: "「智拳印（ちけんいん）」は、どのような段階で用いるとされるか？",
-      choices: [
-        "より抽象的な目的へ移行する段階",
-        "身体に中心軸をつくる段階",
-        "身体を心からリラックスさせる段階",
-        "外に対して行動的に働きかける段階"
-      ],
-      correct: 0,
-      explain: "智拳印は九字の中でも深い段階に位置づけられ、具体から抽象的な境地へと意識を移す印とされる。"
-    },
-    {
-      q: "「内縛印」と「外縛印」のうち、自分自身を奮い立たせるとされるのはどちらか？",
-      choices: ["内縛印（ないばくいん）", "外縛印（げばくいん）", "どちらも同じ効果", "どちらでもない"],
-      correct: 0,
-      explain: "内縛印は指を内側で組む印で、自らを奮い立たせる働きがあるとされる。対して外縛印は身体を強く張りのある状態に変えるという。"
-    },
-    {
-      q: "「内獅子印」と「外獅子印」のうち、外に対して行動的に働きかける時に使うのはどちらか？",
-      choices: ["外獅子印（げじしいん）", "内獅子印（ないじしいん）", "大金剛輪印", "獨鈷印"],
-      correct: 0,
-      explain: "内獅子印は自分の内にある問題に対処するための印、外獅子印は外へ向かって行動的に働きかけるための印とされる。"
-    },
-    {
-      q: "「大金剛輪印（だいこんごうりんいん）」が意味するとされるものはどれか？",
-      choices: ["偉大なチャクラ", "偉大な刀", "偉大な結界", "偉大な呼吸"],
-      correct: 0,
-      explain: "大金剛輪印は、その名の通り「偉大なチャクラ」を意味する印と伝えられている。"
-    },
-    {
-      q: "【難問】九字印の中で「身体を心からリラックスさせる」目的を持つとされる、やや珍しい名を持つ印はどれか？",
-      choices: [
-        "獨鈷印（とっこいん）",
-        "隠形印（おんぎょういん）",
-        "内縛印（ないばくいん）",
-        "智拳印（ちけんいん）"
-      ],
-      correct: 0,
-      explain: "獨鈷印は密教法具の独鈷杵に由来する印で、身体を心から緩め、リラックスさせる目的を持つとされる。",
-      hard: true
+    chunin: {
+      rankName: '中忍', subtitle: '全10問・応用編 ── 各印の効果の理由まで踏み込んで問う',
+      hardTopic: '摩利支天',
+      hardComment: {
+        ok: '見事、最後の難問「摩利支天」の逸話を正解。九字印の奥にある信仰の物語まで会得せり。',
+        ng: '惜しくも難問「摩利支天」は不正解。摩利支天は帝釈天と阿修羅の戦いで姿を隠して加勢し、勝利に導いたという不敗の神 ── 今一度学び直し、再挑戦せよ。'
+      },
+      questions: [
+        {
+          q: "獨鈷印で身体を心からリラックスさせることで高まるとされているものはどれか？",
+          choices: [
+            "相手を受け入れる受容力",
+            "攻撃力",
+            "記憶力",
+            "瞬発力"
+          ],
+          correct: 0,
+          explain: "身体がリラックスすると受け入れ、受容力を高めることができるとされる。逆に相手を拒む時は体が固くなり、逃避反射が出るという。"
+        },
+        {
+          q: "大金剛輪印について、目指したい目標(イメージ)がないまま印を組んでも意味がないとされるのはなぜか？",
+          choices: [
+            "エネルギーがあってもどこにも到達できないから",
+            "チャクラの数が減ってしまうから",
+            "印の形が崩れてしまうから",
+            "呼吸のリズムが乱れてしまうから"
+          ],
+          correct: 0,
+          explain: "大金剛輪印は循環し続けるエネルギー、偉大なチャクラを意味する印。だが目指す目標がなければ、そのエネルギーはどこにも到達できないとされる。"
+        },
+        {
+          q: "外獅子印の練習で、あえてパートナーを付けて行うのは何のためとされるか？",
+          choices: [
+            "自分の力を相手に伝え、外側に向けた行動力・影響力を身につけるため",
+            "相手の弱点を見抜く練習のため",
+            "呼吸を合わせる瞑想のため",
+            "印を正しく結べているか確認してもらうため"
+          ],
+          correct: 0,
+          explain: "外獅子印はパートナーを付けて自分の力を相手に伝える練習をし、自分の内側にこもらず外側に向けた行動力を養う印とされる。"
+        },
+        {
+          q: "内獅子印の練習を続けていくと、修練者は何が感じられるようになるとされるか？",
+          choices: [
+            "自分の問題が体のどの部位に潜んでいるか",
+            "相手の心拍数",
+            "天候の変化",
+            "呼吸のリズムの乱れ"
+          ],
+          correct: 0,
+          explain: "内獅子印の練習を重ねると、自分の問題が体のどの部位に潜んでいるかが感じられるようになり、その位置に印を向けてアプローチしていくとされる。"
+        },
+        {
+          q: "外縛印は身体を強くする目的のほか、どのような目的でも使われるとされるか？",
+          choices: [
+            "外からの魔が自分に入ってこないようにする",
+            "相手に幻を見せる",
+            "声を遠くまで届きやすくする",
+            "体温を下げる"
+          ],
+          correct: 0,
+          explain: "外縛印は身体を強く張りのある状態に変えるほか、外からの魔が入ってこないようにする目的でも使われ、外圧に耐えうる守りを鉄壁にするとされる。"
+        },
+        {
+          q: "内縛印を組む時に持つことが大事だとされるイメージはどれか？",
+          choices: [
+            "肉体が温められていくイメージ",
+            "体が透明になっていくイメージ",
+            "水面に立つイメージ",
+            "空を飛ぶイメージ"
+          ],
+          correct: 0,
+          explain: "内縛印は自分自身を奮い立たせる印で、組む際は肉体が温められていくイメージを持つことが大事だとされる。冷え性の人が血の巡りを良くしたい時にも効果的だという。"
+        },
+        {
+          q: "智拳印はもともと何を基にした印とされているか？",
+          choices: [
+            "仏教の印",
+            "神道の祝詞",
+            "陰陽道の呪符",
+            "中国武術の型"
+          ],
+          correct: 0,
+          explain: "智拳印は仏教の印が基になっており、仏の知恵が身についた状態、つまり自分の感情を挟まずに情報を情報として受け取れる状態をイメージする印とされる。"
+        },
+        {
+          q: "日輪印の考え方で、眉間から光が入るとどうなるとされるか？",
+          choices: [
+            "元気になる",
+            "眠くなる",
+            "記憶が蘇る",
+            "声が出しやすくなる"
+          ],
+          correct: 0,
+          explain: "日輪印には眉間から光が入ると元気になるという考えがあり、さらにその光の先にある自分の心の場所を探す訓練をする印だとされる。"
+        },
+        {
+          q: "隠形印は、姿を隠す特性を持つある神の名を取って、別名何印とも呼ばれるか？",
+          choices: [
+            "摩利支天印",
+            "不動明王印",
+            "弁財天印",
+            "毘沙門天印"
+          ],
+          correct: 0,
+          explain: "隠形印は「摩利支天印」とも呼ばれる。自分を安心させ、気配を消して集中を保つための印とされる。"
+        },
+        {
+          q: "【難問】摩利支天が「不敗の神」として武将や忍者に篤く信仰された由来は、どの戦いにまつわる逸話とされているか？",
+          choices: [
+            "帝釈天と阿修羅の戦いで、姿を隠して帝釈天に加勢し勝利に導いたという逸話",
+            "須佐之男命が八岐大蛇を退治した戦い",
+            "源平合戦での一ノ谷の戦い",
+            "天照大神と月読命の争い"
+          ],
+          correct: 0,
+          explain: "摩利支天は帝釈天と阿修羅の戦いで姿を隠して帝釈天に加勢し、勝利へ導いたとされる。「誰にも見えず、害されない」という不敗の神格が、隠密行動を旨とする忍者や多くの戦国武将に篤く信仰された由来とされる。",
+          hard: true
+        }
+      ]
     }
-  ];
+  };
 
+  var difficulty = null;
+  var quiz = null;
   var current = 0;
-  var answered = new Array(quiz.length).fill(null); // null | true | false
+  var answered = [];
 
+  var subtitleEl = document.getElementById('subtitle');
+  var difficultyView = document.getElementById('difficultyView');
   var progressEl = document.getElementById('progress');
   var qcountEl = document.getElementById('qcount');
   var questionEl = document.getElementById('questionText');
@@ -410,6 +586,23 @@
     return arr;
   }
 
+  function startDifficulty(key){
+    difficulty = quizSets[key];
+    quiz = difficulty.questions;
+    current = 0;
+    answered = new Array(quiz.length).fill(null);
+    subtitleEl.textContent = difficulty.subtitle;
+
+    difficultyView.hidden = true;
+    resultView.hidden = true;
+    progressEl.hidden = false;
+    quizView.hidden = false;
+    renderQuestion();
+  }
+
+  document.getElementById('pickGenin').addEventListener('click', function(){ startDifficulty('genin'); });
+  document.getElementById('pickChunin').addEventListener('click', function(){ startDifficulty('chunin'); });
+
   function renderProgress(){
     progressEl.innerHTML = '';
     quiz.forEach(function(_, i){
@@ -425,7 +618,7 @@
 
   function renderQuestion(){
     var item = quiz[current];
-    qcountEl.innerHTML = '第 ' + (current + 1) + ' / ' + quiz.length + ' 問' + (item.hard ? '<span class="hard-tag">難問</span>' : '');
+    qcountEl.innerHTML = '<span class="diff-tag">' + difficulty.rankName + '</span>第 ' + (current + 1) + ' / ' + quiz.length + ' 問' + (item.hard ? '<span class="hard-tag">難問</span>' : '');
     questionEl.textContent = item.q;
     choicesEl.innerHTML = '';
     feedbackArea.innerHTML = '';
@@ -488,6 +681,7 @@
 
   function showResult(){
     quizView.hidden = true;
+    progressEl.hidden = true;
     resultView.hidden = false;
 
     var score = answered.filter(function(a){ return a === true; }).length;
@@ -509,18 +703,28 @@
 
     var hardBox = document.getElementById('hardResult');
     hardBox.className = 'hard-result ' + (hardOk ? 'correct' : 'wrong');
+    document.getElementById('hardTopic').textContent = difficulty.hardTopic;
     document.getElementById('hardStamp').textContent = hardOk ? '正解！' : '不正解…';
-    document.getElementById('hardComment').textContent = hardOk
-      ? '見事、最後の難問「獨鈷印」を正解。九字印の奥義、心から会得せり。'
-      : '惜しくも難問「獨鈷印」は不正解。獨鈷印は身体を心からリラックスさせる印 ── 今一度修行を積み、再挑戦せよ。';
+    document.getElementById('hardComment').textContent = hardOk ? difficulty.hardComment.ok : difficulty.hardComment.ng;
   }
 
   document.getElementById('retryBtn').addEventListener('click', function(){
     current = 0;
     answered = new Array(quiz.length).fill(null);
     resultView.hidden = true;
+    progressEl.hidden = false;
     quizView.hidden = false;
     renderQuestion();
+  });
+
+  document.getElementById('changeDiffBtn').addEventListener('click', function(){
+    difficulty = null;
+    quiz = null;
+    resultView.hidden = true;
+    progressEl.hidden = true;
+    quizView.hidden = true;
+    subtitleEl.textContent = '全10問・難易度を選んで九字の心得を試せ';
+    difficultyView.hidden = false;
   });
 
   // ambient petals
@@ -536,7 +740,5 @@
       document.body.appendChild(p);
     }
   })();
-
-  renderQuestion();
 })();
 </script>
