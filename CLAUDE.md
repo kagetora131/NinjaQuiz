@@ -23,9 +23,11 @@ No dev server or build step. Open `index.html` directly in a browser.
 
 There are no automated tests, lint config, or build commands in this directory.
 
-## Git remote
+## Git remote / deployment
 
 This directory is pushed to its own GitHub repo, **https://github.com/kagetora131/NinjaQuiz**, independent of the `Homepage` monorepo this folder physically lives inside of. Push here after every update to files in this directory.
+
+The repo is connected to Vercel and auto-deploys on every push to `main`, publicly at **https://ninja-quiz-kappa.vercel.app/**. No build step is configured (none needed — static HTML). GitHub Pages was evaluated but intentionally turned off in favor of Vercel, to keep this app on the same hosting platform as the other apps in this project.
 
 ## Adding a new difficulty tier
 
