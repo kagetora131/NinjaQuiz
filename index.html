@@ -118,6 +118,16 @@
     box-shadow:0 2px 4px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(242,231,211,0.35);
   }
 
+  .lang-toggle{
+    position:absolute; top:20px; left:clamp(16px,4vw,40px);
+    font:inherit; font-size:.75rem; font-weight:700; letter-spacing:.06em;
+    color:var(--ink-soft); background:transparent; cursor:pointer;
+    border:1px solid var(--paper-edge); border-radius:20px; padding:6px 14px;
+    transition:transform .12s ease, background .12s ease;
+  }
+  .lang-toggle:hover{ background:rgba(0,0,0,0.05); transform:translateY(-1px); }
+  .lang-toggle:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+
   h1{
     margin:0 0 4px; font-size:clamp(1.4rem,4vw,1.9rem); letter-spacing:.06em; color:var(--ink);
   }
@@ -166,11 +176,11 @@
   .qcount{ font-size:.8rem; color:var(--ink-soft); letter-spacing:.1em; margin-bottom:6px; }
   .qcount .diff-tag{
     color:var(--jade-dark); font-weight:700; border:1px solid var(--jade-dark);
-    border-radius:3px; padding:1px 6px; margin-right:6px; font-size:.72rem;
+    border-radius:3px; padding:1px 6px; margin-right:6px; font-size:.72rem; text-transform:uppercase;
   }
   .qcount .hard-tag{
     color:var(--seal-red-dark); font-weight:700; border:1px solid var(--seal-red-dark);
-    border-radius:3px; padding:1px 6px; margin-left:8px; font-size:.72rem;
+    border-radius:3px; padding:1px 6px; margin-left:8px; font-size:.72rem; text-transform:uppercase;
   }
   .question{ font-size:clamp(1.05rem,3vw,1.28rem); line-height:1.7; margin:0 0 22px; }
 
@@ -248,8 +258,8 @@
     position:relative;
   }
   .hard-result::before{
-    content:"難問"; position:absolute; top:-12px; left:16px; background:var(--seal-red);
-    color:#f2e7d3; font-size:.72rem; letter-spacing:.1em; padding:2px 9px; border-radius:2px;
+    content:attr(data-hard-label); position:absolute; top:-12px; left:16px; background:var(--seal-red);
+    color:#f2e7d3; font-size:.72rem; letter-spacing:.1em; padding:2px 9px; border-radius:2px; text-transform:uppercase;
   }
   .hard-result h3{ margin:6px 0 8px; font-size:1.05rem; }
   .hard-result .hr-stamp{ font-weight:700; }
@@ -276,19 +286,20 @@
   <div class="spindle left" aria-hidden="true"></div>
   <div class="spindle right" aria-hidden="true"></div>
   <div class="scroll-card" id="app">
+    <button class="lang-toggle" id="langToggle" type="button"></button>
     <div class="seal mincho">忍</div>
-    <h1 class="mincho">忍者クイズ　九字の教え</h1>
-    <p class="subtitle" id="subtitle">全10問・難易度を選んで九字の心得を試せ</p>
+    <h1 class="mincho" id="mainTitle"></h1>
+    <p class="subtitle" id="subtitle"></p>
 
     <div id="difficultyView">
       <div class="difficulty-list">
         <button class="diff-card" id="pickGenin">
-          <span class="diff-rank mincho">下忍</span><span class="diff-name">GENIN・基礎編</span>
-          <p>九字の唱え言葉の順番、九字印という呼び名、九つの印それぞれの基本的な用途を問う入門編。</p>
+          <span class="diff-rank mincho" id="rankGenin"></span><span class="diff-name" id="tagGenin"></span>
+          <p id="descGenin"></p>
         </button>
         <button class="diff-card" id="pickChunin">
-          <span class="diff-rank mincho">中忍</span><span class="diff-name">CHUNIN・応用編</span>
-          <p>各印がなぜその効果を持つとされるのか、練習で何を養うのかまで踏み込む応用編。</p>
+          <span class="diff-rank mincho" id="rankChunin"></span><span class="diff-name" id="tagChunin"></span>
+          <p id="descChunin"></p>
         </button>
       </div>
     </div>
@@ -312,11 +323,11 @@
           <span class="rank-sub" id="rankSub"></span>
         </div>
       </div>
-      <p class="score-line">10問中 <b id="scoreNum"></b> 問正解</p>
+      <p class="score-line" id="scoreLine"></p>
       <div class="history" id="history"></div>
 
-      <div class="hard-result" id="hardResult">
-        <h3 class="mincho">最終問「<span id="hardTopic"></span>」の結果：<span class="hr-stamp" id="hardStamp"></span></h3>
+      <div class="hard-result" id="hardResult" data-hard-label="難問">
+        <h3 class="mincho" id="hardHeading"></h3>
         <p id="hardComment"></p>
       </div>
 
@@ -330,9 +341,40 @@
 
 <script>
 (function(){
-  var quizSets = {
+  var CONTENT = {};
+
+  CONTENT.ja = {
+    ui: {
+      pageTitle: '忍者クイズ 九字の教え',
+      heading: '忍者クイズ　九字の教え',
+      toggleLabel: 'EN',
+      subtitleDefault: '全10問・難易度を選んで九字の心得を試せ',
+      questionCount: function(cur, total){ return '第 ' + cur + ' / ' + total + ' 問'; },
+      hardTag: '難問',
+      hardBadge: '難問',
+      correctWord: '正解',
+      incorrectWord: '不正解',
+      nextQuestion: '次の問へ →',
+      seeResults: '結果を見る',
+      tryAgain: 'もう一度挑戦する',
+      chooseAnother: '難易度を選び直す',
+      scoreLine: function(score){ return '10問中 <b>' + score + '</b> 問正解'; },
+      hardHeading: function(topic, stamp){ return '最終問「' + topic + '」の結果：<span class="hr-stamp">' + stamp + '</span>'; },
+      hardCorrect: '正解！',
+      hardIncorrect: '不正解…'
+    },
+    ranks: {
+      kaiden: { label:'皆伝', sub:'KAIDEN', text:'九字のすべてを極めた、免許皆伝の腕前。' },
+      jonin: { label:'上忍', sub:'JONIN', text:'九字の教えを深く理解している、上忍の実力。' },
+      chunin: { label:'中忍', sub:'CHUNIN', text:'基礎は固い。あと一歩で上忍の域へ。' },
+      genin: { label:'下忍', sub:'GENIN', text:'修行の途中。まずは九字の型から積み重ねよ。' },
+      beginner: { label:'見習い', sub:'MINARAI', text:'まだ入門したばかり。もう一度学び直そう。' }
+    },
+    sets: {
     genin: {
-      rankName: '下忍', subtitle: '全10問・基礎編 ── 九字の唱え言葉と九つの印の基本を問う',
+      rankName: '下忍', pickerTag: 'GENIN・基礎編',
+      pickerDesc: '九字の唱え言葉の順番、九字印という呼び名、九つの印それぞれの基本的な用途を問う入門編。',
+      subtitle: '全10問・基礎編 ── 九字の唱え言葉と九つの印の基本を問う',
       hardTopic: '獨鈷印',
       hardComment: {
         ok: '見事、最後の難問「獨鈷印」を正解。九字印の奥義、心から会得せり。',
@@ -433,7 +475,9 @@
       ]
     },
     chunin: {
-      rankName: '中忍', subtitle: '全10問・応用編 ── 各印の効果の理由まで踏み込んで問う',
+      rankName: '中忍', pickerTag: 'CHUNIN・応用編',
+      pickerDesc: '各印がなぜその効果を持つとされるのか、練習で何を養うのかまで踏み込む応用編。',
+      subtitle: '全10問・応用編 ── 各印の効果の理由まで踏み込んで問う',
       hardTopic: '摩利支天',
       hardComment: {
         ok: '見事、最後の難問「摩利支天」の逸話を正解。九字印の奥にある信仰の物語まで会得せり。',
@@ -553,13 +597,274 @@
         }
       ]
     }
+    }
   };
 
-  var difficulty = null;
-  var quiz = null;
+  CONTENT.en = {
+    ui: {
+      pageTitle: 'Ninja Quiz: The Nine Syllables',
+      heading: 'Ninja Quiz: The Nine Syllables',
+      toggleLabel: '日本語',
+      subtitleDefault: '10 questions per set — choose a level to test your knowledge of the Nine Syllables',
+      questionCount: function(cur, total){ return 'Question ' + cur + ' of ' + total; },
+      hardTag: 'Hard',
+      hardBadge: 'Hard',
+      correctWord: 'Correct',
+      incorrectWord: 'Incorrect',
+      nextQuestion: 'Next Question →',
+      seeResults: 'See Results',
+      tryAgain: 'Try Again',
+      chooseAnother: 'Choose a Different Level',
+      scoreLine: function(score){ return '<b>' + score + '</b> out of 10 correct'; },
+      hardHeading: function(topic, stamp){ return 'Final Question ("' + topic + '") Result: <span class="hr-stamp">' + stamp + '</span>'; },
+      hardCorrect: 'Correct!',
+      hardIncorrect: 'Incorrect…'
+    },
+    ranks: {
+      kaiden: { label:'Kaiden', sub:'FULL MASTERY', text:'You have mastered the entire teaching of the Nine Syllables — a true full transmission.' },
+      jonin: { label:'Jonin', sub:'EXPERT', text:'You have a deep understanding of the Nine Syllables teaching — Jonin-level skill.' },
+      chunin: { label:'Chunin', sub:'PROFICIENT', text:'Your basics are solid. One step more and Jonin is within reach.' },
+      genin: { label:'Genin', sub:'IN TRAINING', text:'Still in training — build up from the basic forms of the Nine Syllables.' },
+      beginner: { label:'Beginner', sub:'NOVICE', text:'Just starting out. Time to study the basics again.' }
+    },
+    sets: {
+    genin: {
+      rankName: 'Genin', pickerTag: 'GENIN · BASIC LEVEL',
+      pickerDesc: 'Covers the chant order, the term Kuji-in, and the basic use of each of the nine seals — an introductory set.',
+      subtitle: '10 questions — Basics: the chant, the name Kuji-in, and what each of the nine seals is for',
+      hardTopic: 'Tokko-in',
+      hardComment: {
+        ok: 'Well done — you got the final hard question on Tokko-in right. You have truly grasped the deeper teaching of the Nine Syllables.',
+        ng: 'So close — the final hard question on Tokko-in was incorrect. Tokko-in is the seal said to fully relax the body. Train a little more and try again.'
+      },
+      questions: [
+        {
+          q: "When a ninja performs kuji-kiri, what is the correct order of the chant?",
+          choices: [
+            "Rin Pyo To Sha Kai Jin Retsu Zai Zen",
+            "Rin Pyo Jin Sha Kai To Retsu Zai Zen",
+            "Rin Pyo To Sha Jin Kai Retsu Zai Zen",
+            "Rin Jin To Sha Kai Pyo Retsu Zai Zen"
+          ],
+          correct: 0,
+          explain: "The correct chant is the Nine Syllables: Rin, Pyo, To, Sha, Kai, Jin, Retsu, Zai, Zen. Kuji-kiri is said to be performed by chanting them in this order while forming the hand seals."
+        },
+        {
+          q: "What is the hand shape formed while chanting the Nine Syllables generally called?",
+          choices: ["Kuji-in (\"Nine Syllable Seals\")", "Ninpo Formation", "Kekkai Ward", "Running Kuji"],
+          correct: 0,
+          explain: "The hand shapes formed are known as Kuji-in (\"Nine Syllable Seals\"), with a seal traditionally said to correspond to each of the nine syllables."
+        },
+        {
+          q: "What is Toin (\"Sword Seal\") traditionally said to be used for?",
+          choices: [
+            "Building a central axis through the body to steady it physically and mentally",
+            "Putting yourself at ease",
+            "Representing a great chakra",
+            "Fully relaxing the body"
+          ],
+          correct: 0,
+          explain: "Toin is formed as if gripping a sword, and is said to build a central axis through the body that steadies both body and mind."
+        },
+        {
+          q: "What situation is Ongyo-in (\"Concealment Seal\") mainly said to be used in?",
+          choices: [
+            "To put yourself at ease",
+            "When acting outwardly toward others",
+            "When moving toward a more abstract stage of practice",
+            "To make the body strong and taut"
+          ],
+          correct: 0,
+          explain: "Ongyo-in is also known as a seal for hiding one's form, but as a practice it is said to be formed to calm and reassure one's own mind."
+        },
+        {
+          q: "What is Nichirin-in (\"Sun Wheel Seal\") said to be used for?",
+          choices: [
+            "Facing inward and confronting your own heart",
+            "Rousing yourself to action",
+            "Dealing with a problem within yourself",
+            "Representing a great chakra"
+          ],
+          correct: 0,
+          explain: "Nichirin-in represents the sun, and is said to be formed to quietly face one's own inner self."
+        },
+        {
+          q: "At what stage of practice is Chiken-in (\"Wisdom Fist Seal\") said to be used?",
+          choices: [
+            "A stage of moving toward a more abstract goal",
+            "A stage of building a central axis through the body",
+            "A stage of fully relaxing the body",
+            "A stage of acting outwardly toward others"
+          ],
+          correct: 0,
+          explain: "Chiken-in is considered one of the deeper Nine Syllable seals, said to shift awareness from the concrete toward a more abstract state."
+        },
+        {
+          q: "Between Naibaku-in and Gebaku-in, which is said to rouse and encourage yourself?",
+          choices: ["Naibaku-in (\"Inner Bind Seal\")", "Gebaku-in (\"Outer Bind Seal\")", "Both have the same effect", "Neither"],
+          correct: 0,
+          explain: "Naibaku-in, formed with the fingers interlaced inward, is said to rouse and encourage yourself, while Gebaku-in is said to make the body strong and taut."
+        },
+        {
+          q: "Between Naishishi-in and Geshishi-in, which is used when acting outwardly toward others?",
+          choices: ["Geshishi-in (\"Outer Lion Seal\")", "Naishishi-in (\"Inner Lion Seal\")", "Daikongorin-in", "Tokko-in"],
+          correct: 0,
+          explain: "Naishishi-in is said to be a seal for dealing with a problem within yourself, while Geshishi-in is a seal for acting outwardly and taking action toward others."
+        },
+        {
+          q: "What is Daikongorin-in (\"Great Diamond-Wheel Seal\") said to represent?",
+          choices: ["A great chakra", "A great sword", "A great barrier", "A great breath"],
+          correct: 0,
+          explain: "True to its name, Daikongorin-in is a seal said to represent a \"great chakra.\""
+        },
+        {
+          q: "[HARD] Among the Kuji-in, which seal — bearing a somewhat unusual name — is said to have the purpose of fully relaxing the body?",
+          choices: [
+            "Tokko-in (\"Vajra Seal\")",
+            "Ongyo-in (\"Concealment Seal\")",
+            "Naibaku-in (\"Inner Bind Seal\")",
+            "Chiken-in (\"Wisdom Fist Seal\")"
+          ],
+          correct: 0,
+          explain: "Tokko-in takes its name from the tokko-sho (vajra), a ritual implement of esoteric Buddhism, and is said to be formed to fully relax and loosen the body.",
+          hard: true
+        }
+      ]
+    },
+    chunin: {
+      rankName: 'Chunin', pickerTag: 'CHUNIN · ADVANCED LEVEL',
+      pickerDesc: 'Digs into why each seal has the effect it\'s said to have, and what practicing it is meant to cultivate.',
+      subtitle: '10 questions — Advanced: digging into why each seal has the effect it does',
+      hardTopic: 'Marishiten',
+      hardComment: {
+        ok: 'Well done — you got the final hard question on the Marishiten legend right. You have grasped even the story of faith behind the Kuji-in.',
+        ng: 'So close — the final hard question on Marishiten was incorrect. Marishiten is said to be the undefeated deity who hid her form to help Taishakuten defeat Ashura. Learn a little more and try again.'
+      },
+      questions: [
+        {
+          q: "What is said to be heightened by fully relaxing the body with Tokko-in?",
+          choices: [
+            "Your capacity to accept and receive others",
+            "Aggression",
+            "Memory",
+            "Reflexes"
+          ],
+          correct: 0,
+          explain: "A relaxed body is said to heighten one's capacity to accept and receive others. Conversely, rejecting someone tends to stiffen the body and trigger a flight response."
+        },
+        {
+          q: "Why is it said that forming Daikongorin-in means nothing if you have no goal or image you're aiming for?",
+          choices: [
+            "Because the energy has nowhere to arrive, even if it exists",
+            "Because the number of chakras decreases",
+            "Because the shape of the seal collapses",
+            "Because the rhythm of your breathing is disturbed"
+          ],
+          correct: 0,
+          explain: "Daikongorin-in represents an ever-circulating energy — a great chakra. But without a goal to aim for, that energy is said to have nowhere to arrive."
+        },
+        {
+          q: "Why is Geshishi-in deliberately practiced with a partner?",
+          choices: [
+            "To convey your own power to another person and build outward-facing action and influence",
+            "To practice spotting an opponent's weaknesses",
+            "To practice meditative breathing in unison",
+            "To have someone check that the seal is formed correctly"
+          ],
+          correct: 0,
+          explain: "Geshishi-in is practiced with a partner so you can convey your own power to them, cultivating outward-facing action without staying closed off inside yourself."
+        },
+        {
+          q: "What is a practitioner said to become able to sense the more they practice Naishishi-in?",
+          choices: [
+            "Where in the body their own problem is hiding",
+            "Another person's heart rate",
+            "Changes in the weather",
+            "Disturbances in their own breathing rhythm"
+          ],
+          correct: 0,
+          explain: "With continued practice of Naishishi-in, one is said to become able to sense where in the body one's own problem is hiding, and to direct the seal toward that location."
+        },
+        {
+          q: "Besides strengthening the body, what other purpose is Gebaku-in said to serve?",
+          choices: [
+            "Keeping outside evil from entering you",
+            "Casting illusions on others",
+            "Making your voice carry further",
+            "Lowering body temperature"
+          ],
+          correct: 0,
+          explain: "Beyond making the body strong and taut, Gebaku-in is also said to be used to keep outside evil from entering, making one's defenses impregnable against external pressure."
+        },
+        {
+          q: "What image is it said to be important to hold while forming Naibaku-in?",
+          choices: [
+            "An image of the body growing warm",
+            "An image of the body turning transparent",
+            "An image of standing on water",
+            "An image of flying through the sky"
+          ],
+          correct: 0,
+          explain: "Naibaku-in is a seal for rousing yourself, and while forming it, it's said to be important to picture your body growing warm — also said to help those with poor circulation."
+        },
+        {
+          q: "What is Chiken-in originally said to be based on?",
+          choices: [
+            "A Buddhist mudra",
+            "A Shinto ritual prayer",
+            "An Onmyodo talisman",
+            "A form from Chinese martial arts"
+          ],
+          correct: 0,
+          explain: "Chiken-in is based on a Buddhist mudra, and is said to represent a state of having attained the Buddha's wisdom — receiving information as information, without letting your emotions get in the way."
+        },
+        {
+          q: "According to the idea behind Nichirin-in, what happens when light enters through the brow?",
+          choices: [
+            "You become energized",
+            "You become sleepy",
+            "Memories come flooding back",
+            "Your voice becomes easier to project"
+          ],
+          correct: 0,
+          explain: "Nichirin-in holds that light entering through the brow brings energy, and that it is also a seal for training yourself to find the location of your own heart, beyond that point of light."
+        },
+        {
+          q: "Taking its name from a deity said to have the power to conceal its form, what is Ongyo-in also known as?",
+          choices: [
+            "Marishiten-in",
+            "Fudo Myo-o-in",
+            "Benzaiten-in",
+            "Bishamonten-in"
+          ],
+          correct: 0,
+          explain: "Ongyo-in is also known as Marishiten-in. It is said to be formed to put yourself at ease, erasing your presence to help you keep your focus."
+        },
+        {
+          q: "[HARD] What battle is the legend behind Marishiten's reputation as the \"undefeated deity,\" devoutly worshipped by warriors and ninja, said to come from?",
+          choices: [
+            "The battle between Taishakuten and Ashura, in which Marishiten hid her form to aid Taishakuten and lead him to victory",
+            "Susanoo's slaying of the eight-headed serpent Yamata-no-Orochi",
+            "The Battle of Ichi-no-Tani during the Genpei War",
+            "The conflict between Amaterasu and Tsukuyomi"
+          ],
+          correct: 0,
+          explain: "Marishiten is said to have hidden her form during the battle between Taishakuten and Ashura, aiding Taishakuten and leading him to victory. This 'undefeated' divinity — unseen and unharmed by anyone — is said to be why Marishiten was so devoutly worshipped by ninja, who practiced stealth, and by many Sengoku-era warlords.",
+          hard: true
+        }
+      ]
+    }
+    }
+  };
+
+  var lang = 'ja';
+  var diffKey = null;
   var current = 0;
   var answered = [];
+  var selectedDisplayIdx = null;
 
+  var mainTitleEl = document.getElementById('mainTitle');
+  var langToggleBtn = document.getElementById('langToggle');
   var subtitleEl = document.getElementById('subtitle');
   var difficultyView = document.getElementById('difficultyView');
   var progressEl = document.getElementById('progress');
@@ -571,10 +876,19 @@
   var nextBtn = document.getElementById('nextBtn');
   var quizView = document.getElementById('quizView');
   var resultView = document.getElementById('resultView');
+  var retryBtn = document.getElementById('retryBtn');
+  var changeDiffBtn = document.getElementById('changeDiffBtn');
+  var scoreLineEl = document.getElementById('scoreLine');
+  var hardHeadingEl = document.getElementById('hardHeading');
+  var hardCommentEl = document.getElementById('hardComment');
+  var hardResultEl = document.getElementById('hardResult');
 
   var STAR = '<svg viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="42"/><path class="star" d="M50 14 L58 42 L86 50 L58 58 L50 86 L42 58 L14 50 L42 42 Z"/></svg>';
 
   var currentOrder = []; // maps displayed choice position -> original choice index
+
+  function T(){ return CONTENT[lang]; }
+  function currentSet(){ return T().sets[diffKey]; }
 
   function shuffledIndices(n){
     var arr = [];
@@ -586,12 +900,23 @@
     return arr;
   }
 
+  function renderDifficultyPicker(){
+    var C = T();
+    document.getElementById('rankGenin').textContent = C.sets.genin.rankName;
+    document.getElementById('tagGenin').textContent = C.sets.genin.pickerTag;
+    document.getElementById('descGenin').textContent = C.sets.genin.pickerDesc;
+    document.getElementById('rankChunin').textContent = C.sets.chunin.rankName;
+    document.getElementById('tagChunin').textContent = C.sets.chunin.pickerTag;
+    document.getElementById('descChunin').textContent = C.sets.chunin.pickerDesc;
+  }
+
   function startDifficulty(key){
-    difficulty = quizSets[key];
-    quiz = difficulty.questions;
+    diffKey = key;
     current = 0;
-    answered = new Array(quiz.length).fill(null);
-    subtitleEl.textContent = difficulty.subtitle;
+    answered = new Array(currentSet().questions.length).fill(null);
+    selectedDisplayIdx = null;
+    currentOrder = [];
+    subtitleEl.textContent = currentSet().subtitle;
 
     difficultyView.hidden = true;
     resultView.hidden = true;
@@ -605,7 +930,7 @@
 
   function renderProgress(){
     progressEl.innerHTML = '';
-    quiz.forEach(function(_, i){
+    currentSet().questions.forEach(function(_, i){
       var d = document.createElement('span');
       d.className = 'dot';
       if(i === current) d.className += ' current';
@@ -616,15 +941,19 @@
     });
   }
 
-  function renderQuestion(){
-    var item = quiz[current];
-    qcountEl.innerHTML = '<span class="diff-tag">' + difficulty.rankName + '</span>第 ' + (current + 1) + ' / ' + quiz.length + ' 問' + (item.hard ? '<span class="hard-tag">難問</span>' : '');
+  function renderQuestion(reuseOrder){
+    var C = T();
+    var setData = currentSet();
+    var item = setData.questions[current];
+    qcountEl.innerHTML = '<span class="diff-tag">' + setData.rankName + '</span>' + C.ui.questionCount(current + 1, setData.questions.length) + (item.hard ? '<span class="hard-tag">' + C.ui.hardTag + '</span>' : '');
     questionEl.textContent = item.q;
     choicesEl.innerHTML = '';
     feedbackArea.innerHTML = '';
     nextRow.hidden = true;
 
-    currentOrder = shuffledIndices(item.choices.length);
+    if(!reuseOrder || currentOrder.length !== item.choices.length){
+      currentOrder = shuffledIndices(item.choices.length);
+    }
     currentOrder.forEach(function(originalIdx, displayIdx){
       var btn = document.createElement('button');
       btn.className = 'choice';
@@ -632,15 +961,16 @@
       btn.addEventListener('click', function(){ selectChoice(displayIdx); });
       choicesEl.appendChild(btn);
     });
+
+    if(answered[current] !== null && selectedDisplayIdx !== null){
+      applyAnsweredState(item, selectedDisplayIdx, answered[current]);
+    }
     renderProgress();
   }
 
-  function selectChoice(displayIdx){
-    var item = quiz[current];
-    var originalIdx = currentOrder[displayIdx];
-    var isCorrect = originalIdx === item.correct;
-    answered[current] = isCorrect;
-
+  function applyAnsweredState(item, displayIdx, isCorrect){
+    var C = T();
+    var setData = currentSet();
     var buttons = choicesEl.querySelectorAll('.choice');
     buttons.forEach(function(btn, i){
       btn.disabled = true;
@@ -652,45 +982,61 @@
     var fb = document.createElement('div');
     fb.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
     fb.innerHTML =
-      '<span class="stamp-word mincho">' + (isCorrect ? '正解' : '不正解') + '</span>' +
+      '<span class="stamp-word mincho">' + (isCorrect ? C.ui.correctWord : C.ui.incorrectWord) + '</span>' +
       '<p>' + item.explain + '</p>';
     feedbackArea.innerHTML = '';
     feedbackArea.appendChild(fb);
 
-    nextBtn.textContent = (current === quiz.length - 1) ? '結果を見る' : '次の問へ →';
+    nextBtn.textContent = (current === setData.questions.length - 1) ? C.ui.seeResults : C.ui.nextQuestion;
     nextRow.hidden = false;
+  }
+
+  function selectChoice(displayIdx){
+    var item = currentSet().questions[current];
+    var originalIdx = currentOrder[displayIdx];
+    var isCorrect = originalIdx === item.correct;
+    answered[current] = isCorrect;
+    selectedDisplayIdx = displayIdx;
+
+    applyAnsweredState(item, displayIdx, isCorrect);
     renderProgress();
   }
 
   nextBtn.addEventListener('click', function(){
-    if(current < quiz.length - 1){
+    if(current < currentSet().questions.length - 1){
       current += 1;
+      selectedDisplayIdx = null;
+      currentOrder = [];
       renderQuestion();
     } else {
       showResult();
     }
   });
 
-  function rankFor(score, hardOk){
-    if(score === quiz.length && hardOk) return { label:'皆伝', sub:'KAIDEN', text:'九字のすべてを極めた、免許皆伝の腕前。' };
-    if(score >= 8) return { label:'上忍', sub:'JONIN', text:'九字の教えを深く理解している、上忍の実力。' };
-    if(score >= 6) return { label:'中忍', sub:'CHUNIN', text:'基礎は固い。あと一歩で上忍の域へ。' };
-    if(score >= 3) return { label:'下忍', sub:'GENIN', text:'修行の途中。まずは九字の型から積み重ねよ。' };
-    return { label:'見習い', sub:'MINARAI', text:'まだ入門したばかり。もう一度学び直そう。' };
+  function rankFor(score, hardOk, total){
+    var r = T().ranks;
+    if(score === total && hardOk) return r.kaiden;
+    if(score >= 8) return r.jonin;
+    if(score >= 6) return r.chunin;
+    if(score >= 3) return r.genin;
+    return r.beginner;
   }
 
   function showResult(){
+    var C = T();
+    var setData = currentSet();
     quizView.hidden = true;
     progressEl.hidden = true;
     resultView.hidden = false;
 
+    var total = setData.questions.length;
     var score = answered.filter(function(a){ return a === true; }).length;
-    var hardOk = answered[quiz.length - 1] === true;
-    var rank = rankFor(score, hardOk);
+    var hardOk = answered[total - 1] === true;
+    var rank = rankFor(score, hardOk, total);
 
     document.getElementById('rankLabel').textContent = rank.label;
     document.getElementById('rankSub').textContent = rank.sub;
-    document.getElementById('scoreNum').textContent = score;
+    scoreLineEl.innerHTML = C.ui.scoreLine(score);
 
     var historyEl = document.getElementById('history');
     historyEl.innerHTML = '';
@@ -701,31 +1047,64 @@
       historyEl.appendChild(d);
     });
 
-    var hardBox = document.getElementById('hardResult');
-    hardBox.className = 'hard-result ' + (hardOk ? 'correct' : 'wrong');
-    document.getElementById('hardTopic').textContent = difficulty.hardTopic;
-    document.getElementById('hardStamp').textContent = hardOk ? '正解！' : '不正解…';
-    document.getElementById('hardComment').textContent = hardOk ? difficulty.hardComment.ok : difficulty.hardComment.ng;
+    hardResultEl.className = 'hard-result ' + (hardOk ? 'correct' : 'wrong');
+    hardResultEl.setAttribute('data-hard-label', C.ui.hardBadge);
+    var stampText = hardOk ? C.ui.hardCorrect : C.ui.hardIncorrect;
+    hardHeadingEl.innerHTML = C.ui.hardHeading(setData.hardTopic, stampText);
+    hardCommentEl.textContent = hardOk ? setData.hardComment.ok : setData.hardComment.ng;
   }
 
-  document.getElementById('retryBtn').addEventListener('click', function(){
+  retryBtn.addEventListener('click', function(){
     current = 0;
-    answered = new Array(quiz.length).fill(null);
+    answered = new Array(currentSet().questions.length).fill(null);
+    selectedDisplayIdx = null;
+    currentOrder = [];
     resultView.hidden = true;
     progressEl.hidden = false;
     quizView.hidden = false;
     renderQuestion();
   });
 
-  document.getElementById('changeDiffBtn').addEventListener('click', function(){
-    difficulty = null;
-    quiz = null;
+  changeDiffBtn.addEventListener('click', function(){
+    diffKey = null;
     resultView.hidden = true;
     progressEl.hidden = true;
     quizView.hidden = true;
-    subtitleEl.textContent = '全10問・難易度を選んで九字の心得を試せ';
+    subtitleEl.textContent = T().ui.subtitleDefault;
     difficultyView.hidden = false;
   });
+
+  function applyStaticText(){
+    var C = T();
+    document.title = C.ui.pageTitle;
+    document.documentElement.lang = lang;
+    mainTitleEl.textContent = C.ui.heading;
+    langToggleBtn.textContent = C.ui.toggleLabel;
+    retryBtn.textContent = C.ui.tryAgain;
+    changeDiffBtn.textContent = C.ui.chooseAnother;
+    renderDifficultyPicker();
+  }
+
+  function refreshAll(){
+    applyStaticText();
+    if(!quizView.hidden){
+      subtitleEl.textContent = currentSet().subtitle;
+      renderQuestion(true);
+    } else if(!resultView.hidden){
+      subtitleEl.textContent = currentSet().subtitle;
+      showResult();
+    } else {
+      subtitleEl.textContent = T().ui.subtitleDefault;
+    }
+  }
+
+  langToggleBtn.addEventListener('click', function(){
+    lang = (lang === 'ja') ? 'en' : 'ja';
+    refreshAll();
+  });
+
+  applyStaticText();
+  subtitleEl.textContent = T().ui.subtitleDefault;
 
   // ambient petals
   (function(){
