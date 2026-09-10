@@ -1,0 +1,10 @@
+# このリポジトリのルートはそのまま Vercel で静的公開される。
+# 公開したくない確認用・作業用ファイルはここで除外しておく。
+
+# 問題一覧の日英対訳 Excel(レビュー用。正典は Desktop/英語版切り替え/ に置く)
+忍者クイズ_問題一覧_日英対訳.xlsx
+*.xlsx
+
+# Claude Code のローカル設定・一時ファイル
+.claude/settings.local.json
+.claude/launch.json
