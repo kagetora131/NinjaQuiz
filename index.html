@@ -848,7 +848,20 @@
   };
 
   var lang = (function () {
-    // 端末の言語設定が日本語以外なら英語をデフォルトにする
+    // URLに ?lang=ja / ?lang=en があれば最優先(ホームページの表示言語のまま
+    // アプリを開けるようにするため)。使い終わったらURLからは消しておく。
+    try {
+      var urlLang = new URLSearchParams(window.location.search).get('lang');
+      if (urlLang === 'ja' || urlLang === 'en') {
+        var cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('lang');
+        window.history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+        return urlLang;
+      }
+    } catch (e) {
+      // ignore
+    }
+    // 明示指定が無ければ、端末の言語設定が日本語以外の場合に英語をデフォルトにする
     // (フランス語・スペイン語など未対応言語の訪問者にも英語を表示するため)。
     try {
       return (navigator.language || '').toLowerCase().indexOf('ja') === 0 ? 'ja' : 'en';
