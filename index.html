@@ -847,7 +847,15 @@
     }
   };
 
-  var lang = 'ja';
+  var lang = (function () {
+    // 端末の言語設定が日本語以外なら英語をデフォルトにする
+    // (フランス語・スペイン語など未対応言語の訪問者にも英語を表示するため)。
+    try {
+      return (navigator.language || '').toLowerCase().indexOf('ja') === 0 ? 'ja' : 'en';
+    } catch (e) {
+      return 'ja';
+    }
+  })();
   var diffKey = null;
   var current = 0;
   var answered = [];
