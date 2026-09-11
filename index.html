@@ -861,7 +861,15 @@
     } catch (e) {
       // ignore
     }
-    // 明示指定が無ければ、端末の言語設定が日本語以外の場合に英語をデフォルトにする
+    // 明示指定が無ければ、ホームページの表示言語(同一オリジンのlocalStorageを共有)を
+    // 端末の言語設定より優先する。
+    try {
+      var hpLang = window.localStorage.getItem('kagetora-lang');
+      if (hpLang === 'ja' || hpLang === 'en') return hpLang;
+    } catch (e) {
+      // ignore
+    }
+    // それも無ければ、端末の言語設定が日本語以外の場合に英語をデフォルトにする
     // (フランス語・スペイン語など未対応言語の訪問者にも英語を表示するため)。
     try {
       return (navigator.language || '').toLowerCase().indexOf('ja') === 0 ? 'ja' : 'en';
